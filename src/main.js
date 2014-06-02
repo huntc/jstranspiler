@@ -33,21 +33,39 @@
     try {
       sourceFileMappings = JSON.parse(args[SOURCE_FILE_MAPPINGS_ARG]);
     } catch (e) {
-      sourceFileMappings = [
+      sourceFileMappings = [[
         path.join(cwd, args[SOURCE_FILE_MAPPINGS_ARG]), 
         args[SOURCE_FILE_MAPPINGS_ARG]
-      ];
+      ]];
     }
 
     var target = (args.length > TARGET_ARG? args[TARGET_ARG] : path.join(cwd, "lib"));
 
-    var options = (args.length > OPTIONS_ARG? JSON.parse(args[OPTIONS_ARG]) : {});
+    var options;
+    if (target.length > 0 && target.charAt(0) === "{") {
+      options = JSON.parse(target);
+      target = path.join(cwd, "lib");
+    } else {
+      options = (args.length > OPTIONS_ARG? JSON.parse(args[OPTIONS_ARG]) : {});
+    }
 
     return {
       sourceFileMappings: sourceFileMappings,
       target: target,
       options: options
     };
+  };
+
+  /**
+   * If it looks like a duck, quacks like a duck, it is a Problem.
+   */
+  exports.isProblem = function (result) {
+    return result.message !== undefined && 
+           result.severity !== undefined &&
+           result.lineNumber !== undefined &&
+           result.characterOffset !== undefined &&
+           result.lineContent !== undefined &&
+           result.source !== undefined;
   };
 
   exports.processingDone = function (sourcesToProcess, results, problems) {
@@ -86,20 +104,14 @@
       var output = path.join(args.target, outputFile);
 
       config.processor(input, output).then(function(result) {
-        if (result.message) {
+        if (exports.isProblem(result)) {
           problems.push(result);
           results.push({
             source: input,
             result: null
           });
         } else {
-          results.push({
-            source: input,
-            result: {
-                filesRead: [input],
-                filesWritten: [output]
-            }
-          });
+          results.push(result);
         }
         sourcesToProcess = config.processingDone(sourcesToProcess, results, problems);
 

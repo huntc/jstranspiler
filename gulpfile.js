@@ -8,11 +8,11 @@ gulp.task('lint', function() {
         .pipe(jshint.reporter('default'));
 });
 
-gulp.task('test', function() {
+gulp.task('test', ['lint'], function() {
     return gulp.src(['test/test-*.js'])
         .pipe(mocha({
             reporter: 'spec'
         }));
 });
 
-gulp.task('default', ['lint', 'test']);
+gulp.task('default', ['test']);
